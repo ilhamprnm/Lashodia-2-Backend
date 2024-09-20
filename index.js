@@ -1,3 +1,4 @@
+require('dotenv').config();
 const port = process.env.port;
 const express = require("express");
 const app = express();
@@ -6,7 +7,6 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken")
 const path = require("path");
 const cors = require("cors");
-require('dotenv').config();
 const mdb_key = process.env.MongoDB_Key;
 
 
