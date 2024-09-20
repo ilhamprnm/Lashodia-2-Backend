@@ -1,4 +1,4 @@
-const port = 4000;
+const port = process.env.port;
 const express = require("express");
 const app = express();
 const mongoose = require('mongoose');
@@ -6,13 +6,15 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken")
 const path = require("path");
 const cors = require("cors");
-const { type } = require("os");
+require('dotenv').config();
+const mdb_key = process.env.MongoDB_Key;
+
 
 app.use(express.json());
 app.use(cors());
 
 // Database Connection with MongoDB
-mongoose.connect("mongodb+srv://ilhampurnama78:seven654@cluster0.lv08t.mongodb.net/")
+mongoose.connect(mdb_key);
 
 // Create API 
 app.get('/', (req,res)=>{
