@@ -8,6 +8,8 @@ const jwt = require("jsonwebtoken")
 const path = require("path");
 const cors = require("cors");
 const mdb_key = process.env.MongoDB_Key;
+const { Storage } = require('@google-cloud/storage');
+const { format } = require('util');
 
 
 app.use(express.json());
@@ -21,27 +23,66 @@ app.get('/', (req,res)=>{
   res.send('Express app is running')
 })
 
+// Set up Google Cloud Storage
+const storage = new Storage({
+  keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE, 
+  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID, 
+});
+
+const bucket = storage.bucket(process.env.BUCKET_NAME);
+
+// Set up Multer to use Google Cloud Storage
+const upload = multer({storage: multer.memoryStorage()})
+
+// API for Upload Images to Google Cloud Storage
+app.post('/upload', upload.single('product'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const blob = bucket.file(`${req.file.fieldname}_${Date.now()}${path.extname(req.file.originalname)}`);
+  const blobStream = blob.createWriteStream({
+    resumable: false, // You can set this to true for larger files
+    contentType: req.file.mimetype,
+  });
+
+  blobStream.on('error', (err) => {
+    res.status(500).json({ error: 'Unable to upload the image.' });
+  });
+
+  blobStream.on('finish', () => {
+    // The public URL can be used to access the file via HTTP.
+    const publicUrl = format(`https://storage.googleapis.com/${bucket.name}/${blob.name}`);
+
+    res.status(200).json({
+      success: 1,
+      image_url: publicUrl,
+    });
+  });
+
+  blobStream.end(req.file.buffer); // Send the file buffer to Google Cloud Storage
+});
+
 // Image Storage Engine
 
-const storage = multer.diskStorage({
-  destination:'./upload/images',
-  filename:(req,file,cb) => {
-    return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
-  }
-})
+// const storage = multer.diskStorage({
+//   destination:'./upload/images',
+//   filename:(req,file,cb) => {
+//     return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
+//   }
+// })
 
-const upload = multer({storage:storage})
 
 // API for Upload Images
 
-app.use('/images', express.static('upload/images'))
+// app.use('/images', express.static('upload/images'))
 
-app.post('/upload', upload.single('product'), (req,res)=>{
-  res.json({
-    success:1,
-    image_url:`http://localhost:${port}/images/${req.file.filename}`,
-  })
-})
+// app.post('/upload', upload.single('product'), (req,res)=>{
+//   res.json({
+//     success:1,
+//     image_url:`http://localhost:${port}/images/${req.file.filename}`,
+//   })
+// })
 
 
 app.listen(port, (error) => {
