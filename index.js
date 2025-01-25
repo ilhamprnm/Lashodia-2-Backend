@@ -316,7 +316,7 @@ app.get('/allproducts', async (req,res) => {
 app.get('/getcartdata',fetchUser, async (req,res)=>{
   let userCart = await Users.findOne({_id:req.user.id});
   console.log('Cart data fetched')
-  res.send(userCart.cartData)
+  res.status(200).json({success:true, message:"Product added to cart", cartData:userCart.cartData})
 })
 
 
